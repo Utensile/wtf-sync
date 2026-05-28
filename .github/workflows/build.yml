@@ -1,0 +1,61 @@
+name: Build WTF Sync Tool
+
+# Runs on every push, and on manual trigger.
+# To download the binaries: Actions tab → click the run → Artifacts section at the bottom.
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:   # lets you trigger it manually from the GitHub UI
+
+jobs:
+
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            artifact: wtf-sync
+            ext: ""
+          - os: windows-latest
+            name: Windows
+            artifact: WTF Sync
+            ext: ".exe"
+          - os: macos-latest
+            name: macOS
+            artifact: WTF Sync
+            ext: ""
+
+    runs-on: ${{ matrix.os }}
+    name: Build for ${{ matrix.name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # tkinter isn't always present on the GitHub Linux runner
+      - name: Install tkinter (Linux only)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y python3-tk
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: python build.py
+
+      # Each OS produces its binary in a different place; normalise to dist/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WTF-Sync-${{ matrix.name }}
+          path: |
+            dist/${{ matrix.artifact }}${{ matrix.ext }}
+            dist/${{ matrix.artifact }}.app/**
+          if-no-files-found: error
+          retention-days: 30
