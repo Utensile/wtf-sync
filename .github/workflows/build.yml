@@ -47,6 +47,8 @@ jobs:
         run: pip install pyinstaller
 
       - name: Build with PyInstaller
+        env:
+          PYTHONUTF8: "1"
         run: python build.py
 
       # Each OS produces its binary in a different place; normalise to dist/
