@@ -92,8 +92,10 @@ def scan_wtf(wtf_root: str) -> dict:
         if not acct.is_dir() or acct.name.startswith("."):
             continue
         result[acct.name] = {}
+        # These are known account-level folders, not realm names.
+        _ACCT_LEVEL_DIRS = {"SavedVariables"}
         for realm in sorted(acct.iterdir()):
-            if not realm.is_dir() or realm.name in ("SavedVariables",) or realm.name.startswith("."):
+            if not realm.is_dir() or realm.name in _ACCT_LEVEL_DIRS or realm.name.startswith("."):
                 continue
             chars = []
             for char in sorted(realm.iterdir()):
@@ -544,13 +546,24 @@ class WTFSyncApp(tk.Tk):
                 for key, level, fname in items_to_copy:
                     src_item = (src_acct_root if level == "acct" else src_char_root) / fname
                     tgt_item = (tgt_acct_root if level == "acct" else tgt_char_root) / fname
+                    # Skip if source and destination are identical — this happens when
+                    # copying account-level items between characters on the same account.
+                    # Proceeding would rmtree the source directory before re-copying it.
+                    if src_item.resolve() == tgt_item.resolve():
+                        continue
                     if not src_item.exists():
                         continue
                     try:
                         if src_item.is_dir():
+                            # Copy to a temp location first, then replace, so a
+                            # crash mid-copy never leaves the target in a broken state.
+                            tmp_item = tgt_item.with_name(tgt_item.name + ".__wtftmp__")
+                            if tmp_item.exists():
+                                shutil.rmtree(tmp_item)
+                            shutil.copytree(src_item, tmp_item)
                             if tgt_item.exists():
                                 shutil.rmtree(tgt_item)
-                            shutil.copytree(src_item, tgt_item)
+                            tmp_item.rename(tgt_item)
                         else:
                             shutil.copy2(src_item, tgt_item)
                         done += 1
@@ -607,13 +620,24 @@ class WTFSyncApp(tk.Tk):
                 for key, level, fname in items_to_copy:
                     src_item = (src_acct_root if level == "acct" else src_char_root) / fname
                     tgt_item = (tgt_acct_root if level == "acct" else tgt_char_root) / fname
+                    # Skip if source and destination are identical — this happens when
+                    # copying account-level items between characters on the same account.
+                    # Proceeding would rmtree the source directory before re-copying it.
+                    if src_item.resolve() == tgt_item.resolve():
+                        continue
                     if not src_item.exists():
                         continue
                     try:
                         if src_item.is_dir():
+                            # Copy to a temp location first, then replace, so a
+                            # crash mid-copy never leaves the target in a broken state.
+                            tmp_item = tgt_item.with_name(tgt_item.name + ".__wtftmp__")
+                            if tmp_item.exists():
+                                shutil.rmtree(tmp_item)
+                            shutil.copytree(src_item, tmp_item)
                             if tgt_item.exists():
                                 shutil.rmtree(tgt_item)
-                            shutil.copytree(src_item, tgt_item)
+                            tmp_item.rename(tgt_item)
                         else:
                             shutil.copy2(src_item, tgt_item)
                         done += 1
