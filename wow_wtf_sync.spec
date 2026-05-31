@@ -39,6 +39,7 @@ if sys.platform == "darwin":
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
+        icon='icons/mac.icns',
     )
     coll = COLLECT(
         exe, a.binaries, a.zipfiles, a.datas,
@@ -74,7 +75,7 @@ elif sys.platform == "win32":
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
-        icon=None,
+        icon='icons/windows.ico',
         onefile=True,
     )
 
